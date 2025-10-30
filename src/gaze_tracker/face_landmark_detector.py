@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from .eye import Eye
-from .iris import Iris
+from .pupil import Pupil
 from src.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,7 +43,7 @@ class FaceLandmarkDetector:
 
         iris_contour = np.array([self._point(landmarks, i, w, h) for i in iris_indices], np.int32)
         iris_center = tuple(np.mean(iris_contour, axis=0).astype(int))
-        iris = Iris(center=iris_center, contour=iris_contour)
+        iris = Pupil(center=iris_center, contour=iris_contour)
 
         return Eye(left=left, right=right, top=top, bottom=bottom, iris=iris)
 

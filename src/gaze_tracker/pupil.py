@@ -1,6 +1,6 @@
 import cv2
 
-class Iris:
+class Pupil:
     def __init__(self, center=None, contour=None):
         self.center = center      # (x, y)
         self.contour = contour    # list of (x, y) points, optional
