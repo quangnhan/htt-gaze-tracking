@@ -1,8 +1,18 @@
 import cv2
+import os
 from .gaze_tracker.face_landmark_detector import FaceLandmarkDetector
 from .gaze_tracker.gaze_tracker import GazeTracker
+from dotenv import load_dotenv
 
-cap = cv2.VideoCapture(1)
+# Load .env values
+load_dotenv()
+
+# Read camera index from .env (default = 0 if not found)
+camera_index = int(os.getenv("CAMERA_INDEX", 0))
+
+# Use it in VideoCapture
+cap = cv2.VideoCapture(camera_index)
+    
 detector = FaceLandmarkDetector()
 gaze_tracker = GazeTracker()
 

@@ -1,105 +1,64 @@
 import cv2
-import mediapipe as mp
-import numpy as np
+from .gaze_tracker.face_landmark_detector import FaceLandmarkDetector
+from .gaze_tracker.gaze_tracker import GazeTracker
 
-# 🔹 Replace webcam with video file
-VIDEO_PATH = "data/WIN_20251023_22_30_57_Pro.mp4"  # <<-- Change to your video path
+# --- Replace webcam with video file ---
+VIDEO_PATH = "data/WIN_20251023_22_30_57_Pro.mp4"  # <<< your video file
 cap = cv2.VideoCapture(VIDEO_PATH)
 
-# Initialize MediaPipe FaceMesh
-mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1)
+detector = FaceLandmarkDetector()
+gaze_tracker = GazeTracker()
 
-# Eye landmarks (based on MediaPipe face mesh indices)
-LEFT_IRIS = [469, 470, 471, 472]
-RIGHT_IRIS = [474, 475, 476, 477]
-LEFT_EYE_LANDMARKS = [33, 133]   # left eye corners
-RIGHT_EYE_LANDMARKS = [362, 263] # right eye corners
-
-def get_landmark_point(landmarks, index, w, h):
-    """Convert normalized landmark coordinates to pixel coordinates."""
-    return int(landmarks[index].x * w), int(landmarks[index].y * h)
-
-def get_iris_center(landmarks, iris_indices, w, h):
-    """Compute the center of iris landmarks."""
-    xs = [landmarks[i].x * w for i in iris_indices]
-    ys = [landmarks[i].y * h for i in iris_indices]
-    return int(np.mean(xs)), int(np.mean(ys))
-
-def eye_gaze_ratio(iris_center, eye_corner_left, eye_corner_right):
-    """Compute normalized horizontal ratio of iris within the eye."""
-    eye_width = eye_corner_right[0] - eye_corner_left[0]
-    if eye_width == 0:
-        return 0.5
-    return (iris_center[0] - eye_corner_left[0]) / eye_width
-
+# --- FPS-based playback ---
 fps = cap.get(cv2.CAP_PROP_FPS)
-if fps <= 0: 
-    fps = 30  # fallback to 30 FPS
+if fps <= 0:
+    fps = 30
 delay = int(1000 / fps)
+
+# --- Create Trackbars (0–100) ---
+cv2.namedWindow("Eyes & Iris (Modular)")
+cv2.createTrackbar("H_Min", "Eyes & Iris (Modular)", 40, 100, lambda x: None)
+cv2.createTrackbar("H_Max", "Eyes & Iris (Modular)", 60, 100, lambda x: None)
+cv2.createTrackbar("V_Min", "Eyes & Iris (Modular)", 40, 100, lambda x: None)
+cv2.createTrackbar("V_Max", "Eyes & Iris (Modular)", 60, 100, lambda x: None)
 
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
 
-    h, w, _ = frame.shape
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(frame_rgb)
+    # Convert trackbars → normalized threshold range
+    h_min = cv2.getTrackbarPos("H_Min", "Eyes & Iris (Modular)") / 100
+    h_max = cv2.getTrackbarPos("H_Max", "Eyes & Iris (Modular)") / 100
+    v_min = cv2.getTrackbarPos("V_Min", "Eyes & Iris (Modular)") / 100
+    v_max = cv2.getTrackbarPos("V_Max", "Eyes & Iris (Modular)") / 100
 
-    if results.multi_face_landmarks:
-        face_landmarks = results.multi_face_landmarks[0].landmark
+    # Detect eyes
+    left_eye, right_eye = detector.process(frame)
 
-        # Get iris centers
-        left_iris = get_iris_center(face_landmarks, LEFT_IRIS, w, h)
-        right_iris = get_iris_center(face_landmarks, RIGHT_IRIS, w, h)
+    if left_eye: 
+        left_eye.draw(frame)
+    if right_eye: 
+        right_eye.draw(frame)
 
-        # Get eye corners
-        left_eye_left = get_landmark_point(face_landmarks, LEFT_EYE_LANDMARKS[0], w, h)
-        left_eye_right = get_landmark_point(face_landmarks, LEFT_EYE_LANDMARKS[1], w, h)
-        right_eye_left = get_landmark_point(face_landmarks, RIGHT_EYE_LANDMARKS[0], w, h)
-        right_eye_right = get_landmark_point(face_landmarks, RIGHT_EYE_LANDMARKS[1], w, h)
+    # Send eyes to gaze tracker
+    gaze_tracker.set_eyes(left_eye, right_eye)
 
-        # Compute ratios
-        left_ratio = eye_gaze_ratio(left_iris, left_eye_left, left_eye_right)
-        right_ratio = eye_gaze_ratio(right_iris, right_eye_left, right_eye_right)
-        avg_ratio = (left_ratio + right_ratio) / 2
+    # Set dynamic thresholds
+    gaze_tracker.set_h_thresholds((h_min, h_max))
+    gaze_tracker.set_v_thresholds((v_min, v_max))
 
-        # Determine if user is looking at screen
-        if 0.4 < avg_ratio < 0.6:
-            status = "LOOKING AT SCREEN"
-            color = (0, 255, 0)
-        else:
-            status = "LOOKING AWAY"
-            color = (0, 0, 255)
+    # Draw gaze threshold box & gaze point
+    gaze_tracker.draw_gaze_box(frame)
 
-        # === Draw visualization ===
+    # Determine if user is looking at the screen
+    is_looking = gaze_tracker.is_looking_at_screen()
+    label = "Looking at Screen" if is_looking else "Not Looking at Screen"
+    color = (0, 255, 0) if is_looking else (0, 0, 255)
 
-        # Draw iris centers
-        cv2.circle(frame, left_iris, 3, color, -1)
-        cv2.circle(frame, right_iris, 3, color, -1)
+    cv2.putText(frame, label, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
-        # Draw iris circles
-        left_iris_pts = np.array([get_landmark_point(face_landmarks, i, w, h) for i in LEFT_IRIS], np.int32)
-        right_iris_pts = np.array([get_landmark_point(face_landmarks, i, w, h) for i in RIGHT_IRIS], np.int32)
-        cv2.polylines(frame, [left_iris_pts], True, (0, 255, 255), 1)
-        cv2.polylines(frame, [right_iris_pts], True, (0, 255, 255), 1)
-
-        # Draw eye outlines (between corners)
-        cv2.line(frame, left_eye_left, left_eye_right, (255, 255, 0), 1)
-        cv2.line(frame, right_eye_left, right_eye_right, (255, 255, 0), 1)
-
-        # Draw circles to mark eye corners
-        cv2.circle(frame, left_eye_left, 2, (255, 0, 0), -1)
-        cv2.circle(frame, left_eye_right, 2, (255, 0, 0), -1)
-        cv2.circle(frame, right_eye_left, 2, (255, 0, 0), -1)
-        cv2.circle(frame, right_eye_right, 2, (255, 0, 0), -1)
-
-        # Display status
-        cv2.putText(frame, f"{status}", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-        cv2.putText(frame, f"Ratio: {avg_ratio:.2f}", (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
-
-    cv2.imshow("Gaze Detection", frame)
+    cv2.imshow("Eyes & Iris (Modular)", frame)
     if cv2.waitKey(delay) & 0xFF == 27:  # ESC to exit
         break
 
