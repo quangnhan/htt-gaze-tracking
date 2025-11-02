@@ -2,8 +2,9 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from .eye import Eye
-from .pupil import Pupil
+from .iris import Iris
 from src.logger import get_logger
+from .schema import Point
 
 logger = get_logger(__name__)
 
@@ -35,18 +36,30 @@ class FaceLandmarkDetector:
         )
 
     def _create_eye(self, landmarks, horizontal_eye_indices, vertical_eye_indices, iris_indices, w, h):
+        # Extract horizontal landmarks
         left = self._point(landmarks, horizontal_eye_indices[0], w, h)
         right = self._point(landmarks, horizontal_eye_indices[1], w, h)
 
+        # Extract vertical landmarks
         top = self._point(landmarks, vertical_eye_indices[0], w, h) if vertical_eye_indices else None
         bottom = self._point(landmarks, vertical_eye_indices[1], w, h) if vertical_eye_indices else None
 
-        iris_contour = np.array([self._point(landmarks, i, w, h) for i in iris_indices], np.int32)
-        iris_center = tuple(np.mean(iris_contour, axis=0).astype(int))
-        iris = Pupil(center=iris_center, contour=iris_contour)
+        # Extract iris landmarks
+        iris_contour = [self._point(landmarks, i, w, h) for i in iris_indices]
+        # Convert list of Points → NumPy array of shape (n, 2)
+        contour_array = np.array([[p.x, p.y] for p in iris_contour], dtype=np.int32)
+        # Compute mean of coordinates
+        iris_center = Point(
+            x=int(np.mean(contour_array[:, 0])),
+            y=int(np.mean(contour_array[:, 1]))
+        )
+        iris = Iris(center=iris_center, contour=iris_contour)
 
         return Eye(left=left, right=right, top=top, bottom=bottom, iris=iris)
 
     @staticmethod
-    def _point(landmarks, index, w, h):
-        return int(landmarks[index].x * w), int(landmarks[index].y * h)
+    def _point(landmarks, index, w, h) -> Point:
+        return Point(
+            x=int(landmarks[index].x * w),
+            y=int(landmarks[index].y * h)
+        )
