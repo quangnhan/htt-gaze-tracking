@@ -3,7 +3,7 @@ from .gaze_tracker.face_landmark_detector import FaceLandmarkDetector
 from .gaze_tracker.gaze_tracker import GazeTracker
 
 # --- Replace webcam with video file ---
-VIDEO_PATH = "data/WIN_20251023_22_30_57_Pro.mp4"  # <<< your video file
+VIDEO_PATH = "data/WIN_20251103_13_59_03_Pro.mp4"  # <<< your video file
 cap = cv2.VideoCapture(VIDEO_PATH)
 
 detector = FaceLandmarkDetector()
@@ -17,7 +17,7 @@ delay = int(1000 / fps)
 
 # --- Create Trackbars (0–100) ---
 cv2.namedWindow("Eyes & Iris (Modular)")
-cv2.createTrackbar("H_Min", "Eyes & Iris (Modular)", 40, 100, lambda x: None)
+cv2.createTrackbar("H_Min", "Eyes & Iris (Modular)", 20, 100, lambda x: None)
 cv2.createTrackbar("H_Max", "Eyes & Iris (Modular)", 60, 100, lambda x: None)
 cv2.createTrackbar("V_Min", "Eyes & Iris (Modular)", 40, 100, lambda x: None)
 cv2.createTrackbar("V_Max", "Eyes & Iris (Modular)", 60, 100, lambda x: None)
