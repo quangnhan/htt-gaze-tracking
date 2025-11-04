@@ -1,70 +1,81 @@
 import cv2
-from src.logger import get_logger
+import mediapipe as mp
 from .eye import Eye
 
-logger = get_logger(__name__)
 
-class GazeTracker:
+class GazeTracking:
+    """
+    Tracks both eyes using MediaPipe FaceMesh + your Eye class.
+    """
+
     def __init__(self):
-        self.left_eye = None
-        self.right_eye = None
-        self.h_threshold = (0.4, 0.6)
-        self.v_threshold = (0.4, 0.6)
+        self.frame = None
+        self.eye_left = None
+        self.eye_right = None
 
-    def set_h_thresholds(self, h_threshold: tuple):
-        self.h_threshold = h_threshold
+        self.mp_face = mp.solutions.face_mesh.FaceMesh(
+            max_num_faces=1,
+            refine_landmarks=True,  # IMPORTANT: enables iris landmarks
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
 
-    def set_v_thresholds(self, v_threshold: tuple):
-        self.v_threshold = v_threshold
+    def refresh(self, frame):
+        """Runs face landmark detection and updates eye objects."""
+        self.frame = frame
+        h, w = frame.shape[:2]
+
+        results = self.mp_face.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        if not results.multi_face_landmarks:
+            self.eye_left = None
+            self.eye_right = None
+            return
+
+        landmarks = results.multi_face_landmarks[0].landmark
+
+        # Create Eye objects (your class)
+        self.eye_right = Eye(landmarks, w, h, is_right_eye=True)
+        self.eye_left = Eye(landmarks, w, h, is_right_eye=False)
+
+    def is_blinking(self):
+        """
+        Returns True if average blink ratio indicates blinking.
+        Your blink ratio = eye_width / eye_height
+        - Larger ratio = more closed
+        """
+        if self.eye_left and self.eye_right:
+            blink = (self.eye_left.blinking + self.eye_right.blinking) / 2
+            return blink > 5.0   # <--- Tune this threshold live
+        return False
+
+    def _horizontal_ratio(self):
+        if self.eye_left and self.eye_right:
+            return (self.eye_left.gaze_ratio() + self.eye_right.gaze_ratio()) / 2
+
+    def is_right(self):
+        """User is looking RIGHT (pupil near inner corner)"""
+        ratio = self._horizontal_ratio()
+        if ratio is not None:
+            return ratio < 0.4
+
+    def is_left(self):
+        """User is looking LEFT (pupil near outer corner)"""
+        ratio = self._horizontal_ratio()
+        if ratio is not None:
+            return ratio > 0.6
+
+    def is_center(self):
+        """User is looking mostly centered"""
+        if self.eye_left and self.eye_right:
+            return not self.is_left() and not self.is_right()
         
-    def set_eyes(self, left_eye: Eye, right_eye: Eye):
-        self.left_eye = left_eye
-        self.right_eye = right_eye
+    def annotated_frame(self):
+        """Returns frame with eye markers drawn."""
+        frame = self.frame.copy()
 
-    def compute_gaze_ratios(self):
-        """Return average horizontal and vertical ratios."""
-        left_h = self.left_eye.get_horizontal_ratio()
-        right_h = self.right_eye.get_horizontal_ratio()
-        left_v = self.left_eye.get_vertical_ratio()
-        right_v = self.right_eye.get_vertical_ratio()
-
-        return (left_h + right_h) / 2, (left_v + right_v) / 2
-
-    def is_looking_at_screen(self):
-        h_ratio, v_ratio = self.compute_gaze_ratios()
-        logger.info(f"Gaze Ratios - Horizontal: {h_ratio}, Vertical: {v_ratio}")
-
-        is_center_h = self.h_threshold[0] <= h_ratio <= self.h_threshold[1]
-        is_center_v = self.v_threshold[0] <= v_ratio <= self.v_threshold[1]
-
-        return (is_center_h and is_center_v)
-
-    def draw_gaze_box(self, frame):
-        """Draw threshold box and current gaze point on frame."""
-        if self.left_eye is None or self.right_eye is None:
-            return frame
-
-        frame_h, frame_w = frame.shape[:2]
-
-        # Compute gaze ratios
-        h_ratio, v_ratio = self.compute_gaze_ratios()
-
-        # Convert ratios to pixel coordinates
-        gaze_x = int(h_ratio * frame_w)
-        gaze_y = int(v_ratio * frame_h)
-
-        # Convert threshold to pixel rectangle
-        x1 = int(self.h_threshold[0] * frame_w)
-        x2 = int(self.h_threshold[1] * frame_w)
-        y1 = int(self.v_threshold[0] * frame_h)
-        y2 = int(self.v_threshold[1] * frame_h)
-
-        # Draw threshold rectangle
-        color_box = (0, 255, 0)  # green
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color_box, 2)
-
-        # Draw gaze center
-        color_point = (0, 0, 255)  # red
-        cv2.circle(frame, (gaze_x, gaze_y), 5, color_point, -1)
+        if self.eye_left:
+            self.eye_left.draw(frame)
+        if self.eye_right:
+            self.eye_right.draw(frame)
 
         return frame
