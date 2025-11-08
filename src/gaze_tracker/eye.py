@@ -37,8 +37,8 @@ class Eye:
         else:
             self.top = self.landmarks[386]
             self.bottom = self.landmarks[374]
-            self.left = self.landmarks[263]
-            self.right = self.landmarks[362]
+            self.left = self.landmarks[362]
+            self.right = self.landmarks[263]
 
         self.eye_height = self._distance(self.top, self.bottom)
         self.eye_width = self._distance(self.left, self.right)
@@ -52,8 +52,8 @@ class Eye:
         right_x = self.right.x * self.w
 
         eye_width = right_x - left_x
-        if eye_width == 0:
-            return 0.5  # Prevent divide by zero / fallback
+        # if eye_width == 0:
+        #     return 0.5  # Prevent divide by zero / fallback
 
         return (pupil_x - left_x) / eye_width
 
@@ -72,16 +72,20 @@ class Eye:
 
     def draw(self, frame):
         """Draw dots for left, right, top, bottom + pupil"""
-        
+        if self.is_right_eye:
+            color = (0, 255, 0)  # Green for right eye
+        else:
+            color = (255, 0, 0)  # Blue for left eye
+            
         # Convert landmark to pixel coords
         def px(lm):
             return (int(lm.x * self.w), int(lm.y * self.h))
 
         # Draw eyelid reference points
-        cv2.circle(frame, px(self.left), 3, (255, 0, 0), -1)   # Blue
-        cv2.circle(frame, px(self.right), 3, (255, 0, 0), -1)  # Blue
-        cv2.circle(frame, px(self.top), 3, (255, 0, 0), -1)    # Blue
-        cv2.circle(frame, px(self.bottom), 3, (255, 0, 0), -1) # Blue
+        cv2.circle(frame, px(self.left), 3, color, -1)
+        cv2.circle(frame, px(self.right), 3, color, -1)
+        cv2.circle(frame, px(self.top), 3, color, -1)
+        cv2.circle(frame, px(self.bottom), 3, color, -1)
 
         # Draw pupil
         if self.pupil is not None:

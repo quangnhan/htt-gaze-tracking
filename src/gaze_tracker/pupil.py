@@ -35,17 +35,14 @@ class Pupil:
         except:
             self.x, self.y = None, None
 
-    def draw(self, frame, color=(0, 255, 0), radius=4, thickness=-1):
+    def draw(self, frame):
         """
         Draws the detected pupil on the frame.
 
         Arguments:
             frame (numpy.ndarray): Frame to draw on
-            color: BGR color tuple (default = green)
-            radius: Circle radius
-            thickness: -1 fills the circle
-            label: If True, draw text next to pupil
         """
+        color = (0, 0, 255)
         if self.x is not None and self.y is not None:
-            cv2.circle(frame, (self.x, self.y), radius, color, thickness)
+            cv2.circle(frame, (self.x, self.y), 4, color, -1)
             
