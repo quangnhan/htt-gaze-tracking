@@ -19,11 +19,12 @@ while True:
     
     # Display blink
     if gaze.is_blinking():
-        cv2.putText(annotated, "Blinking", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+        color = (0, 0, 255)   # Red when blinking
+    else:
+        color = (128, 128, 128)  # Gray when not blinking
 
-    # Display direction
-    print(horizontal := gaze._horizontal_ratio())
-    
+    cv2.putText(annotated, "Blinking", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
     # Display all directions at the same time with different colors
     cv2.putText(annotated, "Looking LEFT", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)    # Green
     cv2.putText(annotated, "Looking CENTER", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2) # Cyan/Yellowish
