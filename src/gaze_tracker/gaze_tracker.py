@@ -49,8 +49,6 @@ class GazeTracking:
         return False
 
     def _horizontal_ratio(self):
-        return self.eye_right.gaze_ratio()
-
         if self.eye_left and self.eye_right:
             return (self.eye_left.gaze_ratio() + self.eye_right.gaze_ratio()) / 2
 

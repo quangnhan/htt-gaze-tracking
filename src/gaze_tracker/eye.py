@@ -52,8 +52,8 @@ class Eye:
         right_x = self.right.x * self.w
 
         eye_width = right_x - left_x
-        # if eye_width == 0:
-        #     return 0.5  # Prevent divide by zero / fallback
+        if eye_width == 0:
+            return 0.5  # Prevent divide by zero / fallback
 
         return (pupil_x - left_x) / eye_width
 
