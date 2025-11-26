@@ -18,7 +18,6 @@ class GazeTracking:
             refine_landmarks=True,  # IMPORTANT: enables iris landmarks
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5,
-            use_gpu=True
         )
 
     def refresh(self, frame):
@@ -52,6 +51,8 @@ class GazeTracking:
     def _horizontal_ratio(self):
         if self.eye_left and self.eye_right:
             return (self.eye_left.gaze_ratio() + self.eye_right.gaze_ratio()) / 2
+        else:
+            return 0.5  # Default to center
 
     def is_right(self):
         """User is looking RIGHT (pupil near inner corner)"""

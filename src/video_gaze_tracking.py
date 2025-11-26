@@ -4,7 +4,7 @@ from src.gaze_capter_manager import GazeDatasetRecorder
 from src.gaze_counter import GazeCounterFrames
 
 # Load video instead of webcam
-video_path = "data/WIN_20251126_11_16_52_Pro.mp4"   # <-- change to your video filename
+video_path = "data/WIN_20251126_11_20_16_Pro.mp4"   # <-- change to your video filename
 gaze = GazeTracking()
 cap = cv2.VideoCapture(video_path)
 recorder = GazeDatasetRecorder(base_output_dir="output", cooldown=1.0)

@@ -6,7 +6,7 @@ from src.gaze_tracker.gaze_tracker import GazeTracking
 from src.gaze_capter_manager import GazeDatasetRecorder
 from src.gaze_counter import GazeCounterFrames
 
-VIDEO_PATH = "data/WIN_20251126_11_16_52_Pro.mp4"
+VIDEO_PATH = "data/WIN_20251126_11_20_16_Pro.mp4"
 
 # Init systems
 gaze = GazeTracking()
@@ -117,37 +117,59 @@ def draw_gaze_dashboard(frame, gaze):
 
     return active
 
-def draw_gaze_ratios(frame, gaze, start_x=0, start_y=400, box_width=350, box_height=40, spacing=10, box_color=(0, 255, 255), text_color=(0, 0, 0)):
-    """
-    Draw horizontal gaze ratios on the frame with a filled rectangle background.
+def draw_gaze_ratios(
+    frame, gaze, 
+    start_x=0, start_y=400, 
+    box_width=350, box_height=40, 
+    spacing=10, 
+    box_color=(0, 255, 255), 
+    text_color=(0, 0, 0)
+):
+    # Safe horizontal ratio
+    horizontal = gaze._horizontal_ratio()
+    horizontal_text = f"{horizontal:.2f}" if horizontal is not None else "N/A"
 
-    Parameters:
-    - frame: OpenCV frame to draw on
-    - gaze: GazeTracking object
-    - start_x, start_y: top-left corner of the first rectangle
-    - box_width, box_height: size of each rectangle
-    - spacing: vertical space between rectangles
-    - box_color: BGR color of the rectangle
-    - text_color: BGR color of the text
-    """
+    # Safe left eye ratio
+    if gaze.eye_left:
+        left_ratio = gaze.eye_left.gaze_ratio()
+        left_text = f"{left_ratio:.2f}" if left_ratio is not None else "N/A"
+    else:
+        left_text = "N/A"
+
+    # Safe right eye ratio
+    if gaze.eye_right:
+        right_ratio = gaze.eye_right.gaze_ratio()
+        right_text = f"{right_ratio:.2f}" if right_ratio is not None else "N/A"
+    else:
+        right_text = "N/A"
+
     ratios = [
-        f"Horizontal ratio: {gaze._horizontal_ratio():.2f}",
-        f"Left Horizontal ratio: {gaze.eye_left.gaze_ratio():.2f}",
-        f"Right Horizontal ratio: {gaze.eye_right.gaze_ratio():.2f}"
+        f"Horizontal ratio: {horizontal_text}",
+        f"Left Horizontal ratio: {left_text}",
+        f"Right Horizontal ratio: {right_text}"
     ]
 
     for i, text in enumerate(ratios):
         y = start_y + i * (box_height + spacing)
-        # Draw filled rectangle
-        cv2.rectangle(frame, (start_x, y), (start_x + box_width, y + box_height), box_color, -1)
-        # Draw text inside rectangle
-        cv2.putText(frame,
-                    text,
-                    (start_x + 10, y + int(box_height * 0.7)),  # Adjust vertical position for centering
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    text_color,
-                    2)
+
+        cv2.rectangle(
+            frame,
+            (start_x, y),
+            (start_x + box_width, y + box_height),
+            box_color,
+            -1
+        )
+
+        cv2.putText(
+            frame,
+            text,
+            (start_x + 10, y + int(box_height * 0.7)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            text_color,
+            2
+        )
+
 
 # ------------------------- Update Loop -------------------------
 def update_frame():
