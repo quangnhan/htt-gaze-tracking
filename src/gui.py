@@ -51,9 +51,19 @@ frame_slider.config(command=slider_changed)
 
 controls = tk.Frame(root)
 controls.pack(pady=5)
+playing = False
 
-tk.Button(controls, text="▶ Play", width=10, command=play).grid(row=0, column=1)
-tk.Button(controls, text="⏸ Pause", width=10, command=pause).grid(row=0, column=2)
+def toggle_play_pause():
+    global playing
+    playing = not playing  # switch state
+    if playing:
+        play_pause_btn.config(text="⏸ Pause")
+    else:
+        play_pause_btn.config(text="▶ Play")
+
+# Create button
+play_pause_btn = tk.Button(controls, text="▶ Play", width=10, command=toggle_play_pause)
+play_pause_btn.grid(row=0, column=1)
 
 status_label = tk.Label(root, text="Frame: 0")
 status_label.pack()
@@ -108,6 +118,38 @@ def draw_gaze_dashboard(frame, gaze):
 
     return active
 
+def draw_gaze_ratios(frame, gaze, start_x=0, start_y=400, box_width=350, box_height=40, spacing=10, box_color=(0, 255, 255), text_color=(0, 0, 0)):
+    """
+    Draw horizontal gaze ratios on the frame with a filled rectangle background.
+
+    Parameters:
+    - frame: OpenCV frame to draw on
+    - gaze: GazeTracking object
+    - start_x, start_y: top-left corner of the first rectangle
+    - box_width, box_height: size of each rectangle
+    - spacing: vertical space between rectangles
+    - box_color: BGR color of the rectangle
+    - text_color: BGR color of the text
+    """
+    ratios = [
+        f"Horizontal ratio: {gaze._horizontal_ratio():.2f}",
+        f"Left Horizontal ratio: {gaze.eye_left.gaze_ratio():.2f}",
+        f"Right Horizontal ratio: {gaze.eye_right.gaze_ratio():.2f}"
+    ]
+
+    for i, text in enumerate(ratios):
+        y = start_y + i * (box_height + spacing)
+        # Draw filled rectangle
+        cv2.rectangle(frame, (start_x, y), (start_x + box_width, y + box_height), box_color, -1)
+        # Draw text inside rectangle
+        cv2.putText(frame,
+                    text,
+                    (start_x + 10, y + int(box_height * 0.7)),  # Adjust vertical position for centering
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    text_color,
+                    2)
+
 # ------------------------- Update Loop -------------------------
 def update_frame():
     global current_frame
@@ -134,6 +176,9 @@ def update_frame():
 
         # Draw gaze UI dashboard
         active = draw_gaze_dashboard(annotated, gaze)
+
+        # Display gaze ratios
+        draw_gaze_ratios(annotated, gaze)
 
         # Save logic only when highlighted
         if active == "LEFT":
