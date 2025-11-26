@@ -1,6 +1,6 @@
 import cv2
 
-video_path = "data/WIN_20251124_13_47_13_Pro.mp4"
+video_path = "data/WIN_20251126_11_16_52_Pro.mp4"
 cap = cv2.VideoCapture(video_path)
 
 if not cap.isOpened():
