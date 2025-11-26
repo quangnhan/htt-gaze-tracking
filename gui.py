@@ -17,7 +17,7 @@ cap = cv2.VideoCapture(VIDEO_PATH)
 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Playback state
-playing = False
+playing = True
 current_frame = 0
 
 # ------------------------- Tkinter UI -------------------------
@@ -51,7 +51,6 @@ frame_slider.config(command=slider_changed)
 
 controls = tk.Frame(root)
 controls.pack(pady=5)
-playing = False
 
 def toggle_play_pause():
     global playing
@@ -62,7 +61,7 @@ def toggle_play_pause():
         play_pause_btn.config(text="▶ Play")
 
 # Create button
-play_pause_btn = tk.Button(controls, text="▶ Play", width=10, command=toggle_play_pause)
+play_pause_btn = tk.Button(controls, text="⏸ Pause", width=10, command=toggle_play_pause)
 play_pause_btn.grid(row=0, column=1)
 
 status_label = tk.Label(root, text="Frame: 0")

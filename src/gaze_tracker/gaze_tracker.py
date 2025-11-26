@@ -17,7 +17,8 @@ class GazeTracking:
             max_num_faces=1,
             refine_landmarks=True,  # IMPORTANT: enables iris landmarks
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
+            use_gpu=True
         )
 
     def refresh(self, frame):

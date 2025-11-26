@@ -1,8 +1,5 @@
-# Run with camera
-python -m src.live_gaze_tracking.py
-
-# Run with video
-python -m src.video_gaze_tracking.py
-
 # Run with gui
-python -m src.gui.py
+python gui.py
+
+# Run processing only
+python process_video.py
